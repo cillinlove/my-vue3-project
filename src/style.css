@@ -1,0 +1,117 @@
+/* Import Modern Design System */
+@import './styles/design-system.css';
+
+/* Global Styles */
+#app {
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+/* Element Plus MessageBox 强制居中定位 - 增强版 */
+html .el-message-box__wrapper, 
+body .el-message-box__wrapper, 
+#app .el-message-box__wrapper {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 9999 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  pointer-events: auto !important;
+}
+
+html .el-message-box, 
+body .el-message-box, 
+#app .el-message-box {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  margin: 0 !important;
+  z-index: 10000 !important;
+  max-height: 90vh !important;
+  overflow: auto !important;
+}
+
+/* 覆盖任何可能影响定位的样式 */
+.app-container .el-message-box,
+.sidebar ~ .el-message-box,
+.navbar ~ .el-message-box,
+.main-content .el-message-box,
+.page-layout .el-message-box,
+.page-container .el-message-box,
+.view-container .el-message-box,
+.content-wrapper .el-message-box {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  margin: 0 !important;
+  z-index: 10000 !important;
+}
+
+.app-container .el-message-box__wrapper,
+.sidebar ~ .el-message-box__wrapper,
+.navbar ~ .el-message-box__wrapper,
+.main-content .el-message-box__wrapper,
+.page-layout .el-message-box__wrapper,
+.page-container .el-message-box__wrapper,
+.view-container .el-message-box__wrapper,
+.content-wrapper .el-message-box__wrapper {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 9999 !important;
+}
+
+/* 通用弹窗定位工具类 */
+.message-box-center {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  z-index: 9999 !important;
+}
+
+/* 调度任务详情样式 */
+.task-detail-content {
+  padding: 16px 0;
+}
+
+.task-detail-content .detail-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.task-detail-content .detail-row:last-child {
+  margin-bottom: 0;
+}
+
+.task-detail-content .detail-row strong {
+  min-width: 100px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.task-detail-content .detail-row span,
+.task-detail-content .detail-row div {
+  flex: 1;
+  word-break: break-word;
+}
+
