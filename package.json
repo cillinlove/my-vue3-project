@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "homepage": "https://cillinlove.github.io/my-vue3-project/",
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
