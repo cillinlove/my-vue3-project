@@ -6,7 +6,8 @@ import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/https://github.com/cillinlove/',
+  // 部署到 GitHub Pages 时需要设置 base 为项目名
+  base: '/my-vue3-project/',
   plugins: [
     vue(),
     AutoImport({
