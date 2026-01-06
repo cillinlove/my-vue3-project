@@ -3,7 +3,7 @@ import { ref, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { ElIcon } from 'element-plus'
-import { ShoppingBag, Document, DataAnalysis, InfoFilled, Menu, Fold, User, Ticket, DocumentCopy, ShoppingCart, Box, Grid, Ship, SwitchButton, Key } from '@element-plus/icons-vue'
+import { ShoppingBag, Document, DataAnalysis, Menu, Fold, User, Ticket, DocumentCopy, ShoppingCart, Box, Grid, Ship, SwitchButton, Key } from '@element-plus/icons-vue'
 
 // 控制侧边栏收起/展开状态
 const isCollapsed = ref(false)
