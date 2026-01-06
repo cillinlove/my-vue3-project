@@ -25,6 +25,7 @@ export interface PromotionUpdateRequest {
   name: string
   type: 'discount' | 'coupon' | 'rebate'
   description: string
+  status: 'active' | 'inactive' | 'expired'
   startTime: string
   endTime: string
   discountValue: number

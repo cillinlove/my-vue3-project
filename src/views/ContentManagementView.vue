@@ -97,15 +97,68 @@
         @current-change="handleCurrentChange"
       />
     </div>
+
+    <!-- 新增/编辑内容对话框 -->
+    <el-dialog
+      v-model="dialogVisible"
+      :title="isEdit ? '编辑内容' : '新增内容'"
+      width="600px"
+      :close-on-click-modal="false"
+    >
+      <el-form
+        ref="formRef"
+        :model="formData"
+        :rules="formRules"
+        label-width="100px"
+        status-icon
+      >
+        <el-form-item label="内容标题" prop="title">
+          <el-input v-model="formData.title" placeholder="请输入内容标题" maxlength="200" show-word-limit />
+        </el-form-item>
+        
+        <el-form-item label="内容类型" prop="type">
+          <el-select v-model="formData.type" placeholder="请选择内容类型" style="width: 100%">
+            <el-option label="文章" value="article" />
+            <el-option label="横幅" value="banner" />
+            <el-option label="公告" value="notice" />
+          </el-select>
+        </el-form-item>
+        
+        <el-form-item label="内容状态" prop="status">
+          <el-select v-model="formData.status" placeholder="请选择状态" style="width: 100%">
+            <el-option label="草稿" value="draft" />
+            <el-option label="已发布" value="published" />
+          </el-select>
+        </el-form-item>
+        
+        <el-form-item label="排序" prop="sort">
+          <el-input-number v-model="formData.sort" :min="0" :max="999" controls-position="right" />
+        </el-form-item>
+        
+        <el-form-item label="内容" prop="content">
+          <el-input v-model="formData.content" type="textarea" :rows="6" placeholder="请输入内容" />
+        </el-form-item>
+      </el-form>
+      
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="dialogVisible = false">取消</el-button>
+          <el-button type="primary" :loading="submitLoading" @click="handleSubmit">
+            {{ isEdit ? '保存' : '创建' }}
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
   </PageLayout>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import type { FormInstance, FormRules } from 'element-plus'
 import { Plus, Edit, Delete } from '@element-plus/icons-vue'
-import type { Content, ContentQueryParams } from '../types/content'
-import { getContents, deleteContent } from '../utils/api'
+import type { Content, ContentQueryParams, ContentCreateRequest, ContentUpdateRequest } from '../types/content'
+import { getContents, createContent, updateContent, deleteContent } from '../utils/api'
 import PageLayout from '../components/PageLayout.vue'
 
 // 搜索表单数据
@@ -124,6 +177,37 @@ const pagination = ref({
 
 // 内容列表数据
 const contentList = ref<Content[]>([])
+
+// 对话框相关
+const dialogVisible = ref(false)
+const isEdit = ref(false)
+const submitLoading = ref(false)
+const formRef = ref<FormInstance>()
+
+const formData = reactive({
+  id: undefined as number | undefined,
+  title: '',
+  type: 'article' as 'article' | 'banner' | 'notice',
+  content: '',
+  status: 'draft' as 'published' | 'draft',
+  sort: 0
+})
+
+const formRules: FormRules = {
+  title: [
+    { required: true, message: '请输入内容标题', trigger: 'blur' },
+    { min: 2, max: 200, message: '内容标题长度在 2 到 200 个字符之间', trigger: 'blur' }
+  ],
+  type: [
+    { required: true, message: '请选择内容类型', trigger: 'change' }
+  ],
+  content: [
+    { required: true, message: '请输入内容', trigger: 'blur' }
+  ],
+  status: [
+    { required: true, message: '请选择状态', trigger: 'change' }
+  ]
+}
 
 // 获取内容列表
 const fetchContents = async () => {
@@ -174,12 +258,80 @@ const handleCurrentChange = (page: number) => {
 
 // 新增内容
 const handleAdd = () => {
-  ElMessage.info('新增内容功能开发中')
+  isEdit.value = false
+  resetForm()
+  dialogVisible.value = true
 }
 
 // 编辑内容
-const handleEdit = (_content: Content) => {
-  ElMessage.success('编辑功能开发中')
+const handleEdit = (content: Content) => {
+  isEdit.value = true
+  Object.assign(formData, {
+    id: content.id,
+    title: content.title,
+    type: content.type,
+    content: content.content,
+    status: content.status,
+    sort: content.sort
+  })
+  dialogVisible.value = true
+}
+
+// 重置表单
+const resetForm = () => {
+  formData.id = undefined
+  formData.title = ''
+  formData.type = 'article'
+  formData.content = ''
+  formData.status = 'draft'
+  formData.sort = 0
+  if (formRef.value) {
+    formRef.value.resetFields()
+  }
+}
+
+// 提交表单
+const handleSubmit = async () => {
+  if (!formRef.value) return
+  
+  try {
+    await formRef.value.validate()
+    submitLoading.value = true
+    
+    if (isEdit.value && formData.id) {
+      const updateData: ContentUpdateRequest = {
+        id: formData.id,
+        title: formData.title,
+        type: formData.type,
+        content: formData.content,
+        status: formData.status,
+        sort: formData.sort
+      }
+      await updateContent(updateData)
+      dialogVisible.value = false
+      ElMessage.success('内容更新成功')
+      await fetchContents()
+    } else {
+      const createData: ContentCreateRequest = {
+        title: formData.title,
+        type: formData.type,
+        content: formData.content,
+        status: formData.status,
+        sort: formData.sort
+      }
+      await createContent(createData)
+      dialogVisible.value = false
+      ElMessage.success('内容创建成功')
+      await fetchContents()
+    }
+  } catch (error: any) {
+    if (error !== false) {
+      ElMessage.error(isEdit.value ? '更新内容失败' : '创建内容失败')
+      console.error(error)
+    }
+  } finally {
+    submitLoading.value = false
+  }
 }
 
 // 删除内容
@@ -192,10 +344,9 @@ const handleDelete = async (content: Content) => {
         confirmButtonText: '确定删除',
         cancelButtonText: '取消',
         type: 'warning',
-        customClass: 'delete-confirm-message-box',
-        confirmButtonClass: 'delete-confirm-btn',
-        distinguishCancelAndClose: true,
-        autofocus: false,
+        closeOnClickModal: false,
+        closeOnPressEscape: false,
+        showClose: false
       }
     )
     

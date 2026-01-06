@@ -97,6 +97,51 @@
         @current-change="handleCurrentChange"
       />
     </div>
+
+    <!-- 新增采购订单弹窗 -->
+    <el-dialog
+      v-model="addDialogVisible"
+      title="新增采购订单"
+      width="600px"
+      :close-on-click-modal="false"
+    >
+      <ProcurementOrderForm
+        ref="addFormRef"
+        :is-edit="false"
+        @update:form-data="handleAddFormDataChange"
+      />
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="closeAddDialog">取消</el-button>
+          <el-button type="primary" @click="handleAddSubmit" :loading="isSubmitting">
+            确定
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
+
+    <!-- 编辑采购订单弹窗 -->
+    <el-dialog
+      v-model="editDialogVisible"
+      title="编辑采购订单"
+      width="600px"
+      :close-on-click-modal="false"
+    >
+      <ProcurementOrderForm
+        ref="editFormRef"
+        :order="editingOrder"
+        :is-edit="true"
+        @update:form-data="handleEditFormDataChange"
+      />
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="closeEditDialog">取消</el-button>
+          <el-button type="primary" @click="handleEditSubmit" :loading="isSubmitting">
+            保存
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
   </PageLayout>
 </template>
@@ -106,8 +151,9 @@ import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Edit, Delete } from '@element-plus/icons-vue'
 import PageLayout from '../components/PageLayout.vue'
-import type { ProcurementOrder, ProcurementQueryParams } from '../types/procurement'
-import { getProcurements, deleteProcurement } from '../utils/api'
+import ProcurementOrderForm from '../components/ProcurementOrderForm.vue'
+import type { ProcurementOrder, ProcurementQueryParams, ProcurementCreateRequest, ProcurementUpdateRequest } from '../types/procurement'
+import { getProcurements, deleteProcurement, createProcurement, updateProcurement } from '../utils/api'
 
 // 搜索表单数据
 const searchForm = ref({
@@ -125,6 +171,33 @@ const pagination = ref({
 
 // 采购订单列表数据
 const purchaseList = ref<ProcurementOrder[]>([])
+
+// 新增弹窗相关
+const addDialogVisible = ref(false)
+const addFormRef = ref<InstanceType<typeof ProcurementOrderForm> | null>(null)
+const addFormData = ref<ProcurementCreateRequest | null>(null)
+const isSubmitting = ref(false)
+
+// 编辑弹窗相关
+const editDialogVisible = ref(false)
+const editFormRef = ref<InstanceType<typeof ProcurementOrderForm> | null>(null)
+const editFormData = ref<ProcurementUpdateRequest | null>(null)
+const editingOrder = ref<ProcurementOrder>()
+
+// 关闭新增弹窗
+const closeAddDialog = () => {
+  addFormRef.value?.resetForm()
+  addFormData.value = null
+  addDialogVisible.value = false
+}
+
+// 关闭编辑弹窗
+const closeEditDialog = () => {
+  editFormRef.value?.resetForm()
+  editFormData.value = null
+  editingOrder.value = undefined
+  editDialogVisible.value = false
+}
 
 // 获取状态文本
 const getStatusText = (status: string): string => {
@@ -200,12 +273,79 @@ const handleCurrentChange = async (page: number) => {
 
 // 新增采购订单
 const handleAdd = () => {
-  ElMessage.info('新增采购订单功能开发中')
+  addDialogVisible.value = true
+}
+
+// 新增表单数据变化处理
+const handleAddFormDataChange = (data: ProcurementCreateRequest | ProcurementUpdateRequest) => {
+  addFormData.value = data as ProcurementCreateRequest
+}
+
+// 新增提交
+const handleAddSubmit = async () => {
+  if (!addFormRef.value) {
+    ElMessage.error('表单组件未加载完成，请重试')
+    return
+  }
+  
+  const isValid = await addFormRef.value.validate()
+  if (!isValid) return
+  
+  if (!addFormData.value) {
+    ElMessage.warning('请填写完整的订单信息')
+    return
+  }
+  
+  isSubmitting.value = true
+  try {
+    await createProcurement(addFormData.value)
+    ElMessage.success('新增采购订单成功')
+    closeAddDialog()
+    await fetchProcurements()
+  } catch (error: any) {
+    ElMessage.error('新增失败：' + (error.message || '未知错误'))
+  } finally {
+    isSubmitting.value = false
+  }
 }
 
 // 编辑采购订单
-const handleEdit = (_purchase: ProcurementOrder) => {
-  ElMessage.success('编辑功能开发中')
+const handleEdit = (order: ProcurementOrder) => {
+  editingOrder.value = order
+  editDialogVisible.value = true
+}
+
+// 编辑表单数据变化处理
+const handleEditFormDataChange = (data: ProcurementCreateRequest | ProcurementUpdateRequest) => {
+  editFormData.value = data as ProcurementUpdateRequest
+}
+
+// 编辑提交
+const handleEditSubmit = async () => {
+  if (!editFormRef.value) {
+    ElMessage.error('表单组件未加载完成，请重试')
+    return
+  }
+  
+  const isValid = await editFormRef.value.validate()
+  if (!isValid) return
+  
+  if (!editFormData.value) {
+    ElMessage.warning('请填写完整的订单信息')
+    return
+  }
+  
+  isSubmitting.value = true
+  try {
+    await updateProcurement(editFormData.value)
+    ElMessage.success('保存成功')
+    closeEditDialog()
+    await fetchProcurements()
+  } catch (error: any) {
+    ElMessage.error('保存失败：' + (error.message || '未知错误'))
+  } finally {
+    isSubmitting.value = false
+  }
 }
 
 // 删除采购订单

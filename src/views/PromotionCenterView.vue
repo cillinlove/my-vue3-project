@@ -86,16 +86,106 @@
         @current-change="handleCurrentChange"
       />
     </div>
+
+    <!-- 新增/编辑促销活动弹窗 -->
+    <el-dialog
+      v-model="dialogVisible"
+      :title="isEdit ? '编辑促销活动' : '新增促销活动'"
+      width="600px"
+      destroy-on-close
+      :close-on-click-modal="false"
+    >
+      <el-form
+        ref="formRef"
+        :model="formData"
+        :rules="formRules"
+        label-width="100px"
+        class="promotion-form"
+      >
+        <el-form-item label="活动名称" prop="name">
+          <el-input
+            v-model="formData.name"
+            placeholder="请输入活动名称"
+            maxlength="50"
+            show-word-limit
+          />
+        </el-form-item>
+
+        <el-form-item label="活动类型" prop="type">
+          <el-select v-model="formData.type" placeholder="请选择活动类型" style="width: 100%">
+            <el-option label="折扣" value="discount" />
+            <el-option label="优惠券" value="coupon" />
+            <el-option label="满减" value="rebate" />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item label="活动描述" prop="description">
+          <el-input
+            v-model="formData.description"
+            type="textarea"
+            placeholder="请输入活动描述"
+            :rows="3"
+            maxlength="200"
+            show-word-limit
+          />
+        </el-form-item>
+
+        <el-form-item label="优惠数值" prop="discountValue">
+          <el-input-number
+            v-model="formData.discountValue"
+            :min="0"
+            :max="100"
+            :precision="2"
+            :step="0.01"
+            style="width: 100%"
+          />
+          <span class="form-tip" v-if="formData.type === 'discount'">% (折扣百分比)</span>
+          <span class="form-tip" v-else-if="formData.type === 'coupon'">元 (优惠券金额)</span>
+          <span class="form-tip" v-else>元 (满减金额)</span>
+        </el-form-item>
+
+        <el-form-item label="活动时间" prop="timeRange">
+          <el-date-picker
+            v-model="formData.timeRange"
+            type="datetimerange"
+            :locale="zhCn"
+            range-separator="至"
+            start-placeholder="开始时间"
+            end-placeholder="结束时间"
+            format="YYYY-MM-DD HH:mm:ss"
+            value-format="YYYY-MM-DD HH:mm:ss"
+            style="width: 100%"
+          />
+        </el-form-item>
+
+        <el-form-item label="活动状态" prop="status">
+          <el-radio-group v-model="formData.status">
+            <el-radio value="active">启用</el-radio>
+            <el-radio value="inactive">禁用</el-radio>
+          </el-radio-group>
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="dialogVisible = false">取消</el-button>
+          <el-button type="primary" :loading="submitLoading" @click="handleSubmit">
+            {{ isEdit ? '保存修改' : '创建活动' }}
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
   </PageLayout>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ref, onMounted, reactive } from 'vue'
+import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
+import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { Plus, Edit, Delete } from '@element-plus/icons-vue'
 import PageLayout from '../components/PageLayout.vue'
-import type { Promotion, PromotionQueryParams } from '../types/promotion'
-import { getPromotions, deletePromotion } from '../utils/api'
+import type { Promotion, PromotionQueryParams, PromotionCreateRequest, PromotionUpdateRequest } from '../types/promotion'
+import { getPromotions, createPromotion, updatePromotion, deletePromotion } from '../utils/api'
 
 // 获取促销活动列表
 const fetchPromotions = async () => {
@@ -131,6 +221,141 @@ const pagination = ref({
 // 促销活动列表数据
 const promotionList = ref<Promotion[]>([])
 
+// 弹窗相关
+const dialogVisible = ref(false)
+const isEdit = ref(false)
+const submitLoading = ref(false)
+const formRef = ref<FormInstance>()
+const editingId = ref<number | null>(null)
+
+// 表单数据
+const formData = reactive({
+  name: '',
+  type: 'discount' as 'discount' | 'coupon' | 'rebate',
+  description: '',
+  discountValue: 0,
+  timeRange: [] as [string, string] | [],
+  status: 'active' as 'active' | 'inactive'
+})
+
+// 表单验证规则
+const formRules: FormRules = {
+  name: [
+    { required: true, message: '请输入活动名称', trigger: 'blur' },
+    { min: 2, max: 50, message: '活动名称长度在 2-50 个字符之间', trigger: 'blur' }
+  ],
+  type: [
+    { required: true, message: '请选择活动类型', trigger: 'change' }
+  ],
+  description: [
+    { required: true, message: '请输入活动描述', trigger: 'blur' }
+  ],
+  discountValue: [
+    { required: true, message: '请输入优惠数值', trigger: 'blur' },
+    { type: 'number', min: 0, max: 100, message: '优惠数值必须在 0-100 之间', trigger: 'blur' }
+  ],
+  timeRange: [
+    { required: true, message: '请选择活动时间', trigger: 'change', type: 'array' }
+  ],
+  status: [
+    { required: true, message: '请选择活动状态', trigger: 'change' }
+  ]
+}
+
+// 重置表单
+const resetForm = () => {
+  formData.name = ''
+  formData.type = 'discount'
+  formData.description = ''
+  formData.discountValue = 0
+  formData.timeRange = []
+  formData.status = 'active'
+  editingId.value = null
+  if (formRef.value) {
+    formRef.value.resetFields()
+  }
+}
+
+// 打开新增弹窗
+const handleAdd = () => {
+  isEdit.value = false
+  resetForm()
+  dialogVisible.value = true
+}
+
+// 打开编辑弹窗
+const handleEdit = async (promotion: Promotion) => {
+  isEdit.value = true
+  editingId.value = promotion.id
+  formData.name = promotion.name
+  formData.type = promotion.type
+  formData.description = promotion.description
+  formData.discountValue = promotion.discountValue
+  formData.timeRange = [promotion.startTime, promotion.endTime]
+  formData.status = promotion.status === 'expired' ? 'inactive' : promotion.status
+  dialogVisible.value = true
+}
+
+// 提交表单
+const handleSubmit = async () => {
+  if (!formRef.value) return
+  
+  await formRef.value.validate(async (valid) => {
+    if (!valid) return
+    
+    submitLoading.value = true
+    
+    try {
+      if (isEdit.value && editingId.value !== null) {
+        // 编辑模式
+        if (!formData.timeRange[0] || !formData.timeRange[1]) {
+          ElMessage.error('请选择完整的时间范围')
+          submitLoading.value = false
+          return
+        }
+        const updateData: PromotionUpdateRequest = {
+          id: editingId.value,
+          name: formData.name,
+          type: formData.type,
+          description: formData.description,
+          discountValue: formData.discountValue,
+          startTime: formData.timeRange[0],
+          endTime: formData.timeRange[1],
+          status: formData.status
+        }
+        
+        await updatePromotion(updateData)
+        ElMessage.success('修改促销活动成功')
+      } else {
+        // 新增模式
+        if (!formData.timeRange[0] || !formData.timeRange[1]) {
+          ElMessage.error('请选择完整的时间范围')
+          submitLoading.value = false
+          return
+        }
+        const createData: PromotionCreateRequest = {
+          name: formData.name,
+          type: formData.type,
+          description: formData.description,
+          discountValue: formData.discountValue,
+          startTime: formData.timeRange[0],
+          endTime: formData.timeRange[1]
+        }
+        
+        await createPromotion(createData)
+        ElMessage.success('创建促销活动成功')
+      }
+      
+      dialogVisible.value = false
+      await fetchPromotions()
+    } catch (error: any) {
+      ElMessage.error(isEdit.value ? '修改失败：' : '创建失败：' + (error.message || '未知错误'))
+    } finally {
+      submitLoading.value = false
+    }
+  })
+}
+
 // 搜索
 const handleSearch = async () => {
   pagination.value.page = 1
@@ -159,16 +384,6 @@ const handleSizeChange = async (size: number) => {
 const handleCurrentChange = async (page: number) => {
   pagination.value.page = page
   await fetchPromotions()
-}
-
-// 新增促销活动
-const handleAdd = () => {
-  ElMessage.success('新增促销活动功能已实现')
-}
-
-// 编辑促销活动
-const handleEdit = (promotion: Promotion) => {
-  ElMessage.success(`编辑促销活动「${promotion.name}」功能已实现`)
 }
 
 // 删除促销活动
@@ -229,5 +444,24 @@ onMounted(async () => {
   display: flex;
   gap: var(--spacing-sm);
   align-items: center;
+}
+
+/* 促销活动表单样式 */
+.promotion-form {
+  padding: var(--spacing-md) 0;
+}
+
+.form-tip {
+  margin-left: var(--spacing-sm);
+  color: var(--text-color-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.promotion-form :deep(.el-form-item) {
+  margin-bottom: var(--spacing-lg);
+}
+
+.promotion-form :deep(.el-textarea .el-input__count) {
+  background: transparent;
 }
 </style>

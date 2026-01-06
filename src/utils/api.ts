@@ -1,4 +1,5 @@
 import type { Product, ProductCategory, ProductListResponse, ProductQueryParams, ProductCreateRequest, ProductUpdateRequest } from '../types/product'
+import type { Customer, CustomerListResponse, CustomerQueryParams, CustomerCreateRequest, CustomerUpdateRequest, CustomerStatus } from '../types/customer'
 import { OrderStatus } from '../types/order'
 import type { Order, OrderListResponse, OrderQueryParams } from '../types/order'
 import type { SalesDataResponse } from '../types/sales'
@@ -690,4 +691,68 @@ export async function assignUserRole(data: AssignRoleRequest): Promise<void> {
   // 使用模拟数据
   mockData.assignUserRole(data.userId, data.roleId)
   return Promise.resolve()
+}
+
+// ==========================================
+// 客户管理模块
+// ==========================================
+
+// 获取客户列表
+export async function getCustomers(params: CustomerQueryParams): Promise<CustomerListResponse> {
+  // 记录真实API地址
+  const fullUrl = new URL('/customers', API_BASE_URL)
+  console.log(`API Call: GET ${fullUrl.toString()}`, { params })
+  
+  // 使用模拟数据
+  return mockData.getCustomers(params)
+}
+
+// 创建客户
+export async function createCustomer(data: CustomerCreateRequest): Promise<Customer> {
+  // 记录真实API地址
+  const fullUrl = new URL('/customers', API_BASE_URL)
+  console.log(`API Call: POST ${fullUrl.toString()}`, { data })
+  
+  // 使用模拟数据
+  return mockData.createCustomer(data)
+}
+
+// 更新客户
+export async function updateCustomer(data: CustomerUpdateRequest): Promise<Customer> {
+  // 记录真实API地址
+  const fullUrl = new URL(`/customers/${data.id}`, API_BASE_URL)
+  console.log(`API Call: PUT ${fullUrl.toString()}`, { data })
+  
+  // 使用模拟数据
+  return mockData.updateCustomer(data)
+}
+
+// 删除客户
+export async function deleteCustomer(id: number): Promise<boolean> {
+  // 记录真实API地址
+  const fullUrl = new URL(`/customers/${id}`, API_BASE_URL)
+  console.log(`API Call: DELETE ${fullUrl.toString()}`)
+  
+  // 使用模拟数据
+  return mockData.deleteCustomer(id)
+}
+
+// 批量删除客户
+export async function deleteCustomers(ids: number[]): Promise<boolean> {
+  // 记录真实API地址
+  const fullUrl = new URL('/customers/batch-delete', API_BASE_URL)
+  console.log(`API Call: POST ${fullUrl.toString()}`, { ids })
+  
+  // 使用模拟数据
+  return mockData.deleteCustomers(ids)
+}
+
+// 切换客户状态
+export async function toggleCustomerStatus(id: number, status: CustomerStatus): Promise<Customer> {
+  // 记录真实API地址
+  const fullUrl = new URL(`/customers/${id}/status`, API_BASE_URL)
+  console.log(`API Call: PUT ${fullUrl.toString()}`, { status })
+  
+  // 使用模拟数据
+  return mockData.toggleCustomerStatus(id, status)
 }

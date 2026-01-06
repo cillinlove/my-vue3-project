@@ -30,6 +30,9 @@ body .el-message-box__wrapper,
   align-items: center !important;
   justify-content: center !important;
   pointer-events: auto !important;
+  background: rgba(0, 0, 0, 0.3) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 html .el-message-box, 
@@ -43,6 +46,28 @@ body .el-message-box,
   z-index: 10000 !important;
   max-height: 90vh !important;
   overflow: auto !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2) !important;
+  border: 1px solid #e4e7ed !important;
+  background: #ffffff !important;
+}
+
+html .el-message-box__content,
+body .el-message-box__content,
+#app .el-message-box__content {
+  color: #303133 !important;
+}
+
+html .el-message-box__title,
+body .el-message-box__title,
+#app .el-message-box__title {
+  color: #303133 !important;
+  font-weight: 600 !important;
+}
+
+html .el-message-box__message,
+body .el-message-box__message,
+#app .el-message-box__message {
+  color: #606266 !important;
 }
 
 /* 覆盖任何可能影响定位的样式 */
@@ -76,6 +101,9 @@ body .el-message-box,
   width: 100vw !important;
   height: 100vh !important;
   z-index: 9999 !important;
+  background: rgba(0, 0, 0, 0.3) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 /* 通用弹窗定位工具类 */

@@ -42,6 +42,16 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/customers',
+    name: 'CustomerCenter',
+    component: () => import('../views/CustomerCenterView.vue'),
+    meta: {
+      requiresAuth: true,
+      title: '客户中心',
+      requiredPermission: 'customer_view' as PermissionCode
+    }
+  },
+  {
     path: '/orders',
     name: 'OrderList',
     component: () => import('../views/OrderListView.vue'),

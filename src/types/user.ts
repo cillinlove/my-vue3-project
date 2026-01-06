@@ -35,6 +35,7 @@ export interface UserUpdateRequest {
 
 export interface UserQueryParams {
   username?: string
+  phone?: string
   email?: string
   status?: 'active' | 'inactive'
   page: number

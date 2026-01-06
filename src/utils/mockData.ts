@@ -11,6 +11,7 @@ import type { DispatchTask, DispatchListResponse, DispatchQueryParams, DispatchC
 import type { LogisticsInfo, LogisticsListResponse, LogisticsQueryParams, LogisticsCreateRequest, LogisticsUpdateRequest } from '../types/logistics'
 import type { Permission, PermissionListResponse, PermissionQueryParams, PermissionCreateRequest, PermissionUpdateRequest } from '../types/permission'
 import type { Role, RoleListResponse, RoleQueryParams, RoleCreateRequest, RoleUpdateRequest, UserPermission } from '../types/role'
+import type { Customer, CustomerLevel, CustomerQueryParams, CustomerListResponse, CustomerCreateRequest, CustomerUpdateRequest, CustomerStatus } from '../types/customer'
 
 // 模拟商品分类数据
 export const categories: ProductCategory[] = [
@@ -228,6 +229,20 @@ let mockOrders = generateMockOrders(50)
 // 模拟获取订单列表的API函数
 export function getOrders(params: OrderQueryParams): OrderListResponse {
   let filteredOrders = [...mockOrders]
+
+  // 根据订单号筛选
+  if (params.orderNo) {
+    filteredOrders = filteredOrders.filter(order => 
+      order.orderNo.toLowerCase().includes(params.orderNo!.toLowerCase())
+    )
+  }
+
+  // 根据用户名称筛选
+  if (params.userName) {
+    filteredOrders = filteredOrders.filter(order => 
+      order.userName.toLowerCase().includes(params.userName!.toLowerCase())
+    )
+  }
 
   // 根据订单状态筛选
   if (params.status) {
@@ -588,6 +603,14 @@ export function getUsers(params: UserQueryParams): UserListResponse {
     const keyword = params.username.toLowerCase()
     filteredUsers = filteredUsers.filter(user => 
       user.username.toLowerCase().includes(keyword)
+    )
+  }
+  
+  // 根据电话筛选
+  if (params.phone) {
+    const keyword = params.phone.toLowerCase()
+    filteredUsers = filteredUsers.filter(user => 
+      user.phone.toLowerCase().includes(keyword)
     )
   }
   
@@ -1778,6 +1801,229 @@ export async function updateRoleStatus(id: string, status: boolean): Promise<Rol
   
   mockRoles[index] = updatedRole
   return updatedRole
+}
+
+// ==========================================
+// 客户管理模块
+// ==========================================
+
+// 客户等级
+const customerLevels = ['regular', 'silver', 'gold', 'platinum'] as const
+const customerStatuses = ['active', 'inactive', 'blocked'] as const
+
+// 客户标签
+const customerTags = ['VIP', '老客户', '新客户', '高价值', '潜力客户', '投诉过的', '企业客户', '个人客户']
+
+// 生成随机客户数据
+function generateMockCustomers(count: number): Customer[] {
+  const customers: Customer[] = []
+  const firstNames = ['张', '李', '王', '赵', '刘', '陈', '杨', '黄', '周', '吴', '徐', '孙', '马', '朱', '胡']
+  const lastNames = ['伟', '芳', '娜', '敏', '静', '丽', '强', '磊', '军', '洋', '勇', '艳', '杰', '涛', '明']
+  const companies = ['科技有限公司', '贸易有限公司', '实业集团', '信息咨询公司', '服务中心', '商贸中心']
+  const cities = ['北京', '上海', '广州', '深圳', '杭州', '南京', '武汉', '成都', '西安', '重庆']
+
+  for (let i = 1; i <= count; i++) {
+    const firstName = firstNames[Math.floor(Math.random() * firstNames.length)]!
+    const lastName = lastNames[Math.floor(Math.random() * lastNames.length)]!
+    const city = cities[Math.floor(Math.random() * cities.length)]!
+    
+    const tags: string[] = []
+    const tagCount = Math.floor(Math.random() * 3) + 1
+    for (let j = 0; j < tagCount; j++) {
+      const tag = customerTags[Math.floor(Math.random() * customerTags.length)] || ''
+      if (!tags.includes(tag)) {
+        tags.push(tag)
+      }
+    }
+
+    const level = customerLevels[Math.floor(Math.random() * customerLevels.length)] as CustomerLevel
+    const totalOrders = Math.floor(Math.random() * 100)
+    const totalSpent = Math.floor(Math.random() * 100000) + 1000
+    const lastOrderDaysAgo = Math.floor(Math.random() * 365)
+
+    const companyIndex = Math.floor(Math.random() * companies.length)
+    const companySuffix = companies[companyIndex] || '有限公司'
+    
+    customers.push({
+      id: i,
+      name: `${firstName}${lastName}`,
+      email: `customer${i}@example.com`,
+      phone: `1${Math.floor(Math.random() * 9000000000) + 1000000000}`,
+      company: Math.random() > 0.5 ? `${lastName}${companySuffix}` : undefined,
+      address: `${city}${['东城区', '西城区', '南城区', '北城区', '高新技术开发区'][Math.floor(Math.random() * 5)]}${Math.floor(Math.random() * 1000)}号`,
+      level,
+      status: customerStatuses[Math.floor(Math.random() * customerStatuses.length)] as CustomerStatus,
+      totalOrders,
+      totalSpent,
+      lastOrderTime: new Date(Date.now() - lastOrderDaysAgo * 24 * 60 * 60 * 1000).toISOString(),
+      createdAt: new Date(Date.now() - Math.random() * 31536000000).toISOString(),
+      updatedAt: new Date(Date.now() - Math.random() * 31536000000).toISOString(),
+      tags,
+      notes: Math.random() > 0.7 ? '重要客户，需重点关注' : undefined
+    })
+  }
+
+  return customers
+}
+
+// 模拟客户数据
+let mockCustomers = generateMockCustomers(100)
+let nextCustomerId = mockCustomers.length + 1
+
+// 模拟获取客户列表的API函数
+export function getCustomers(params: CustomerQueryParams): CustomerListResponse {
+  let filteredCustomers = [...mockCustomers]
+
+  // 根据客户名称筛选
+  if (params.name) {
+    const keyword = params.name.toLowerCase()
+    filteredCustomers = filteredCustomers.filter(customer => 
+      customer.name.toLowerCase().includes(keyword)
+    )
+  }
+
+  // 根据邮箱筛选
+  if (params.email) {
+    const keyword = params.email.toLowerCase()
+    filteredCustomers = filteredCustomers.filter(customer => 
+      customer.email.toLowerCase().includes(keyword)
+    )
+  }
+
+  // 根据手机号筛选
+  if (params.phone) {
+    filteredCustomers = filteredCustomers.filter(customer => 
+      customer.phone.includes(params.phone!)
+    )
+  }
+
+  // 根据等级筛选
+  if (params.level) {
+    filteredCustomers = filteredCustomers.filter(customer => 
+      customer.level === params.level
+    )
+  }
+
+  // 根据状态筛选
+  if (params.status) {
+    filteredCustomers = filteredCustomers.filter(customer => 
+      customer.status === params.status
+    )
+  }
+
+  // 根据标签筛选
+  if (params.tags && params.tags.length > 0) {
+    filteredCustomers = filteredCustomers.filter(customer => 
+      params.tags!.some(tag => customer.tags.includes(tag))
+    )
+  }
+
+  // 计算总数
+  const total = filteredCustomers.length
+
+  // 分页处理
+  const { page, pageSize } = params
+  const startIndex = (page - 1) * pageSize
+  const endIndex = startIndex + pageSize
+  const paginatedCustomers = filteredCustomers.slice(startIndex, endIndex)
+
+  return {
+    list: paginatedCustomers,
+    total,
+    page,
+    pageSize
+  }
+}
+
+// 模拟创建客户的API函数
+export async function createCustomer(data: CustomerCreateRequest): Promise<Customer> {
+  // 模拟网络延迟
+  await new Promise(resolve => setTimeout(resolve, 500))
+  
+  const newCustomer: Customer = {
+    id: nextCustomerId++,
+    ...data,
+    level: data.level || 'regular',
+    status: 'active',
+    totalOrders: 0,
+    totalSpent: 0,
+    tags: data.tags || [],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }
+  
+  mockCustomers.unshift(newCustomer)
+  return newCustomer
+}
+
+// 模拟更新客户的API函数
+export async function updateCustomer(data: CustomerUpdateRequest): Promise<Customer> {
+  // 模拟网络延迟
+  await new Promise(resolve => setTimeout(resolve, 500))
+  
+  const index = mockCustomers.findIndex(c => c.id === data.id)
+  if (index === -1) {
+    throw new Error('客户不存在')
+  }
+  
+  const updatedCustomer: Customer = {
+    ...mockCustomers[index]!,
+    ...data,
+    createdAt: mockCustomers[index]!.createdAt,
+    updatedAt: new Date().toISOString()
+  }
+  
+  mockCustomers[index] = updatedCustomer
+  return updatedCustomer
+}
+
+// 模拟删除客户的API函数
+export async function deleteCustomer(id: number): Promise<boolean> {
+  // 模拟网络延迟
+  await new Promise(resolve => setTimeout(resolve, 500))
+  
+  const index = mockCustomers.findIndex(c => c.id === id)
+  if (index === -1) {
+    throw new Error('客户不存在')
+  }
+  
+  mockCustomers.splice(index, 1)
+  return true
+}
+
+// 模拟批量删除客户的API函数
+export async function deleteCustomers(ids: number[]): Promise<boolean> {
+  // 模拟网络延迟
+  await new Promise(resolve => setTimeout(resolve, 500))
+  
+  ids.forEach(id => {
+    const index = mockCustomers.findIndex(c => c.id === id)
+    if (index !== -1) {
+      mockCustomers.splice(index, 1)
+    }
+  })
+  
+  return true
+}
+
+// 模拟切换客户状态的API函数
+export async function toggleCustomerStatus(id: number, status: CustomerStatus): Promise<Customer> {
+  // 模拟网络延迟
+  await new Promise(resolve => setTimeout(resolve, 500))
+  
+  const index = mockCustomers.findIndex(c => c.id === id)
+  if (index === -1) {
+    throw new Error('客户不存在')
+  }
+  
+  const updatedCustomer: Customer = {
+    ...mockCustomers[index]!,
+    status,
+    updatedAt: new Date().toISOString()
+  }
+  
+  mockCustomers[index] = updatedCustomer
+  return updatedCustomer
 }
 
 // 模拟获取用户权限的API函数

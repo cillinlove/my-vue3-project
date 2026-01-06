@@ -1,138 +1,146 @@
 <template>
-  <div class="permission-management">
-    <div class="permission-management-header">
-      <h2>权限管理</h2>
-      <el-button type="primary" @click="handleAddPermission">
-        <el-icon><Plus /></el-icon>
-        新增权限
-      </el-button>
-    </div>
-
-    <!-- 搜索和筛选区域 -->
-    <div class="permission-management-filter">
-      <el-card shadow="hover">
-        <el-form :model="queryParams" layout="inline" size="small">
-          <el-form-item label="权限名称">
-            <el-input
-              v-model="queryParams.name"
-              placeholder="请输入权限名称"
-              clearable
-              @keyup.enter="handleQuery"
-            />
-          </el-form-item>
-          <el-form-item label="权限编码">
-            <el-input
-              v-model="queryParams.code"
-              placeholder="请输入权限编码"
-              clearable
-              @keyup.enter="handleQuery"
-            />
-          </el-form-item>
-          <el-form-item label="所属模块">
-            <el-input
-              v-model="queryParams.module"
-              placeholder="请输入所属模块"
-              clearable
-              @keyup.enter="handleQuery"
-            />
-          </el-form-item>
-          <el-form-item label="权限类型">
-            <el-select v-model="queryParams.type" placeholder="请选择权限类型" clearable>
-              <el-option label="菜单" value="menu" />
-              <el-option label="按钮" value="button" />
-              <el-option label="API" value="api" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="状态">
-            <el-switch v-model="queryParams.status" inline-prompt active-text="启用" inactive-text="禁用" />
-          </el-form-item>
-          <el-form-item>
-            <el-button type="primary" @click="handleQuery">查询</el-button>
-            <el-button @click="handleReset">重置</el-button>
-          </el-form-item>
-        </el-form>
-      </el-card>
-    </div>
-
-    <!-- 权限列表 -->
-    <div class="permission-management-table">
-      <el-card shadow="hover">
-        <el-table
-          v-loading="loading"
-          :data="permissions"
-          style="width: 100%"
-          stripe
-          border
-          :default-sort="{ prop: 'sort', order: 'ascending' }"
-        >
-          <el-table-column prop="name" label="权限名称" width="180" />
-          <el-table-column prop="code" label="权限编码" width="180" />
-          <el-table-column prop="module" label="所属模块" width="150" />
-          <el-table-column prop="type" label="权限类型" width="120">
-            <template #default="scope">
-              <el-tag
-                :type="
-                  scope.row.type === 'menu' ? 'primary' :
-                  scope.row.type === 'button' ? 'success' : 'warning'
-                "
-              >
-                {{ scope.row.type === 'menu' ? '菜单' :
-                   scope.row.type === 'button' ? '按钮' : 'API' }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="path" label="访问路径" width="200" />
-          <el-table-column prop="description" label="描述" />
-          <el-table-column prop="sort" label="排序" width="80" />
-          <el-table-column prop="status" label="状态" width="100">
-            <template #default="scope">
-              <el-switch
-                v-model="scope.row.status"
-                @change="handleStatusChange(scope.row)"
-              />
-            </template>
-          </el-table-column>
-          <el-table-column prop="createdAt" label="创建时间" width="180" />
-          <el-table-column prop="updatedAt" label="更新时间" width="180" />
-          <el-table-column label="操作" width="180" fixed="right">
-            <template #default="scope">
-              <div class="operation-buttons">
-                <el-button
-                  type="primary"
-                  size="small"
-                  @click="handleEditPermission(scope.row)"
-                  :disabled="!scope.row.status"
-                >
-                  <el-icon><Edit /></el-icon>
-                  编辑
-                </el-button>
-                <el-button
-                  type="danger"
-                  size="small"
-                  @click="handleDeletePermission(scope.row)"
-                >
-                  <el-icon><Delete /></el-icon>
-                  删除
-                </el-button>
-              </div>
-            </template>
-          </el-table-column>
-        </el-table>
-
-        <!-- 分页 -->
-        <div class="pagination-container">
-          <el-pagination
-            v-model:current-page="queryParams.page"
-            v-model:page-size="queryParams.pageSize"
-            :page-sizes="[10, 20, 50, 100]"
-            layout="total, sizes, prev, pager, next, jumper"
-            :total="total"
-            @size-change="handleSizeChange"
-            @current-change="handleCurrentChange"
+  <PageLayout
+    title="权限管理"
+    :actions="[
+      { type: 'primary', text: '新增权限', icon: Plus, onClick: handleAddPermission }
+    ]"
+  >
+    
+    <!-- 搜索表单 -->
+    <el-card shadow="never" class="search-form">
+      <el-form :inline="true" @submit.prevent="handleQuery">
+        <el-form-item label="权限名称">
+          <el-input
+            v-model="queryParams.name"
+            placeholder="请输入权限名称"
+            clearable
+            @keyup.enter="handleQuery"
           />
-        </div>
-      </el-card>
-    </div>
+        </el-form-item>
+        
+        <el-form-item label="权限编码">
+          <el-input
+            v-model="queryParams.code"
+            placeholder="请输入权限编码"
+            clearable
+            @keyup.enter="handleQuery"
+          />
+        </el-form-item>
+        
+        <el-form-item label="所属模块">
+          <el-input
+            v-model="queryParams.module"
+            placeholder="请输入所属模块"
+            clearable
+            @keyup.enter="handleQuery"
+          />
+        </el-form-item>
+        
+        <el-form-item label="权限类型">
+          <el-select
+            v-model="queryParams.type"
+            placeholder="请选择权限类型"
+            clearable
+          >
+            <el-option label="菜单" value="menu" />
+            <el-option label="按钮" value="button" />
+            <el-option label="API" value="api" />
+          </el-select>
+        </el-form-item>
+        
+        <el-form-item label="状态">
+          <el-select
+            v-model="queryParams.status"
+            placeholder="请选择状态"
+            clearable
+          >
+            <el-option label="启用" :value="true" />
+            <el-option label="禁用" :value="false" />
+          </el-select>
+        </el-form-item>
+        
+        <el-form-item>
+          <el-button type="primary" @click="handleQuery">搜索</el-button>
+          <el-button @click="handleReset">重置</el-button>
+        </el-form-item>
+      </el-form>
+    </el-card>
+    
+    <!-- 权限列表 -->
+    <el-card shadow="never" class="table-container">
+      <el-table
+        v-loading="loading"
+        :data="permissions"
+        stripe
+        style="width: 100%"
+      >
+        <el-table-column prop="name" label="权限名称" width="180" />
+        <el-table-column prop="code" label="权限编码" width="180" />
+        <el-table-column prop="module" label="所属模块" width="150" />
+        <el-table-column prop="type" label="权限类型" width="120" align="center">
+          <template #default="scope">
+            <el-tag
+              :type="
+                scope.row.type === 'menu' ? 'primary' :
+                scope.row.type === 'button' ? 'success' : 'warning'
+              "
+            >
+              {{ scope.row.type === 'menu' ? '菜单' :
+                 scope.row.type === 'button' ? '按钮' : 'API' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="path" label="访问路径" width="200" />
+        <el-table-column prop="description" label="描述" />
+        <el-table-column prop="sort" label="排序" width="80" align="center" />
+        <el-table-column prop="status" label="状态" width="100" align="center">
+          <template #default="scope">
+            <el-switch
+              v-model="scope.row.status"
+              @change="handleStatusChange(scope.row)"
+            />
+          </template>
+        </el-table-column>
+        <el-table-column prop="createdAt" label="创建时间" width="180" />
+        <el-table-column prop="updatedAt" label="更新时间" width="180" />
+        <el-table-column label="操作" width="180" fixed="right" align="center">
+          <template #default="scope">
+            <div class="operation-buttons">
+              <el-button
+                type="primary"
+                size="small"
+                @click="handleEditPermission(scope.row)"
+                :disabled="!scope.row.status"
+              >
+                <el-icon><Edit /></el-icon>
+                编辑
+              </el-button>
+              <el-button
+                type="danger"
+                size="small"
+                @click="handleDeletePermission(scope.row)"
+              >
+                <el-icon><Delete /></el-icon>
+                删除
+              </el-button>
+            </div>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <!-- 分页 -->
+      <div class="pagination-container">
+        <el-pagination
+          v-model:current-page="queryParams.page"
+          v-model:page-size="queryParams.pageSize"
+          :page-sizes="[10, 20, 50, 100]"
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="total"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </div>
+    </el-card>
 
     <!-- 新增/编辑权限弹窗 -->
     <el-dialog
@@ -213,7 +221,7 @@
         </span>
       </template>
     </el-dialog>
-  </div>
+  </PageLayout>
 </template>
 
 <script setup lang="ts">
@@ -461,31 +469,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.permission-management {
-  padding: 20px;
-}
-
-.permission-management-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.permission-management-header h2 {
-  margin: 0;
-  font-size: 24px;
-  font-weight: 600;
-}
-
-.permission-management-filter {
-  margin-bottom: 20px;
-}
-
-.permission-management-table {
-  margin-bottom: 20px;
-}
-
 .pagination-container {
   display: flex;
   justify-content: flex-end;
@@ -502,13 +485,5 @@ onMounted(() => {
   gap: 8px;
   justify-content: flex-start;
   align-items: center;
-}
-
-:deep(.el-card) {
-  border-radius: 8px;
-}
-
-:deep(.el-form-item__label) {
-  font-weight: 500;
 }
 </style>

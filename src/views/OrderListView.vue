@@ -4,6 +4,24 @@
     <!-- 搜索表单 -->
     <el-card shadow="never" class="search-form">
       <el-form :inline="true" @submit.prevent="handleSearch">
+        <el-form-item label="订单号">
+          <el-input
+            v-model="searchForm.orderNo"
+            placeholder="请输入订单号"
+            clearable
+            style="width: 180px"
+          />
+        </el-form-item>
+        
+        <el-form-item label="用户名称">
+          <el-input
+            v-model="searchForm.userName"
+            placeholder="请输入用户名称"
+            clearable
+            style="width: 150px"
+          />
+        </el-form-item>
+        
         <el-form-item label="订单状态">
           <el-select
             v-model="searchForm.status"
@@ -170,6 +188,8 @@ const orderStatusMap = {
 
 // 搜索表单数据
 const searchForm = ref({
+  orderNo: undefined as string | undefined,
+  userName: undefined as string | undefined,
   status: undefined as OrderStatus | undefined,
   startTime: undefined as string | undefined,
   endTime: undefined as string | undefined
@@ -224,6 +244,8 @@ const handleSearch = () => {
 // 重置
 const handleReset = () => {
   searchForm.value = {
+    orderNo: undefined,
+    userName: undefined,
     status: undefined,
     startTime: undefined,
     endTime: undefined

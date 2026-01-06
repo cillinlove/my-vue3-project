@@ -38,6 +38,8 @@ export interface Order {
 
 // 订单查询参数类型
 export interface OrderQueryParams {
+  orderNo?: string
+  userName?: string
   status?: OrderStatus
   startTime?: string
   endTime?: string

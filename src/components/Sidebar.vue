@@ -3,7 +3,7 @@ import { ref, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { ElIcon } from 'element-plus'
-import { ShoppingBag, Document, DataAnalysis, Menu, Fold, User, Ticket, DocumentCopy, ShoppingCart, Box, Grid, Ship, SwitchButton, Key } from '@element-plus/icons-vue'
+import { ShoppingBag, Document, DataAnalysis, Menu, Fold, User, Ticket, DocumentCopy, ShoppingCart, Box, Grid, Ship, SwitchButton, Key, UserFilled } from '@element-plus/icons-vue'
 
 // 控制侧边栏收起/展开状态
 const isCollapsed = ref(false)
@@ -121,6 +121,7 @@ const menuGroups = [
     title: '用户与营销',
     items: [
       { path: '/user-center', name: 'UserCenter', title: '用户中心', icon: User, color: '#F56C6C' },
+      { path: '/customers', name: 'CustomerCenter', title: '客户中心', icon: UserFilled, color: '#67C23A' },
       { path: '/promotion-center', name: 'PromotionCenter', title: '促销中心', icon: Ticket, color: '#C0C4CC' }
     ]
   },

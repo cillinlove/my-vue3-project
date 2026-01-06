@@ -23,6 +23,15 @@
           />
         </el-form-item>
         
+        <el-form-item label="电话">
+          <el-input
+            v-model="searchForm.phone"
+            placeholder="请输入电话"
+            clearable
+            @keyup.enter="handleSearch"
+          />
+        </el-form-item>
+        
         <el-form-item label="用户状态">
           <el-select
             v-model="searchForm.status"
@@ -118,6 +127,7 @@
             @keyup.enter="fetchPermissions"
           />
         </el-form-item>
+        
         <el-form-item label="权限编码">
           <el-input
             v-model="permissionQueryParams.code"
@@ -126,6 +136,7 @@
             @keyup.enter="fetchPermissions"
           />
         </el-form-item>
+        
         <el-form-item label="所属模块">
           <el-input
             v-model="permissionQueryParams.module"
@@ -134,6 +145,7 @@
             @keyup.enter="fetchPermissions"
           />
         </el-form-item>
+        
         <el-form-item>
           <el-button type="primary" @click="fetchPermissions">查询</el-button>
           <el-button @click="resetPermissionQuery">重置</el-button>
@@ -183,17 +195,73 @@
       </span>
     </template>
   </el-dialog>
+
+  <!-- 新增/编辑用户对话框 -->
+  <el-dialog
+    v-model="dialogVisible"
+    :title="isEdit ? '编辑用户' : '新增用户'"
+    width="500px"
+    :close-on-click-modal="false"
+  >
+    <el-form
+      ref="formRef"
+      :model="formData"
+      :rules="formRules"
+      label-width="100px"
+      status-icon
+    >
+      <el-form-item label="用户名称" prop="username">
+        <el-input v-model="formData.username" placeholder="请输入用户名称" maxlength="50" show-word-limit />
+      </el-form-item>
+      
+      <el-form-item label="邮箱" prop="email">
+        <el-input v-model="formData.email" placeholder="请输入邮箱地址" />
+      </el-form-item>
+      
+      <el-form-item label="手机号" prop="phone">
+        <el-input v-model="formData.phone" placeholder="请输入手机号" />
+      </el-form-item>
+      
+      <el-form-item v-if="!isEdit" label="密码" prop="password">
+        <el-input v-model="formData.password" type="password" placeholder="请输入密码" show-password />
+      </el-form-item>
+      
+      <el-form-item label="角色" prop="role">
+        <el-select v-model="formData.role" placeholder="请选择角色" style="width: 100%">
+          <el-option label="管理员" value="admin" />
+          <el-option label="普通用户" value="user" />
+        </el-select>
+      </el-form-item>
+      
+      <el-form-item label="用户状态" prop="status">
+        <el-select v-model="formData.status" placeholder="请选择状态" style="width: 100%">
+          <el-option label="启用" value="active" />
+          <el-option label="禁用" value="inactive" />
+        </el-select>
+      </el-form-item>
+    </el-form>
+    
+    <template #footer>
+      <div class="dialog-footer">
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="submitLoading" @click="handleSubmit">
+          {{ isEdit ? '保存' : '创建' }}
+        </el-button>
+      </div>
+    </template>
+  </el-dialog>
 </PageLayout>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import type { FormInstance, FormRules } from 'element-plus'
 import { Plus, Edit, Delete, Setting } from '@element-plus/icons-vue'
 import PageLayout from '../components/PageLayout.vue'
-import type { User, UserQueryParams, UserUpdateRequest } from '../types/user'
+import type { User, UserQueryParams, UserUpdateRequest, UserCreateRequest } from '../types/user'
 import type { Permission, PermissionQueryParams } from '../types/permission'
-import { getUsers, deleteUser, updateUser, getPermissions, getUserPermissions, assignUserPermissions } from '../utils/api'
+import { getUsers, createUser, updateUser, deleteUser, getPermissions, getUserPermissions, assignUserPermissions } from '../utils/api'
 
 // 获取用户列表
 const fetchUsers = async () => {
@@ -202,6 +270,7 @@ const fetchUsers = async () => {
       page: pagination.value.page,
       pageSize: pagination.value.pageSize,
       username: searchForm.value.username,
+      phone: searchForm.value.phone,
       status: searchForm.value.status
     }
     
@@ -216,6 +285,7 @@ const fetchUsers = async () => {
 // 搜索表单数据
 const searchForm = ref({
   username: '',
+  phone: '',
   status: undefined as 'active' | 'inactive' | undefined
 })
 
@@ -229,6 +299,48 @@ const pagination = ref({
 // 用户列表数据
 const userList = ref<User[]>([])
 
+// 对话框相关
+const dialogVisible = ref(false)
+const isEdit = ref(false)
+const submitLoading = ref(false)
+const formRef = ref<FormInstance>()
+
+const formData = reactive({
+  id: undefined as number | undefined,
+  username: '',
+  email: '',
+  phone: '',
+  password: '',
+  role: 'user' as 'admin' | 'user',
+  status: 'active' as 'active' | 'inactive',
+  permissions: [] as string[]
+})
+
+const formRules: FormRules = {
+  username: [
+    { required: true, message: '请输入用户名称', trigger: 'blur' },
+    { min: 2, max: 50, message: '用户名称长度在 2 到 50 个字符之间', trigger: 'blur' }
+  ],
+  email: [
+    { required: true, message: '请输入邮箱地址', trigger: 'blur' },
+    { type: 'email', message: '请输入有效的邮箱地址', trigger: 'blur' }
+  ],
+  phone: [
+    { required: true, message: '请输入手机号', trigger: 'blur' },
+    { pattern: /^1[3-9]\d{9}$/, message: '请输入有效的手机号', trigger: 'blur' }
+  ],
+  password: [
+    { required: true, message: '请输入密码', trigger: 'blur' },
+    { min: 6, max: 20, message: '密码长度在 6 到 20 个字符之间', trigger: 'blur' }
+  ],
+  role: [
+    { required: true, message: '请选择角色', trigger: 'change' }
+  ],
+  status: [
+    { required: true, message: '请选择状态', trigger: 'change' }
+  ]
+}
+
 // 搜索
 const handleSearch = async () => {
   pagination.value.page = 1
@@ -240,6 +352,7 @@ const handleSearch = async () => {
 const handleReset = async () => {
   searchForm.value = {
     username: '',
+    phone: '',
     status: undefined
   }
   pagination.value.page = 1
@@ -261,12 +374,87 @@ const handleCurrentChange = async (page: number) => {
 
 // 新增用户
 const handleAdd = () => {
-  ElMessage.success('新增用户功能已实现')
+  isEdit.value = false
+  resetForm()
+  dialogVisible.value = true
 }
 
 // 编辑用户
-const handleEdit = (_user: User) => {
-  ElMessage.success('编辑用户功能已实现')
+const handleEdit = (user: User) => {
+  isEdit.value = true
+  Object.assign(formData, {
+    id: user.id,
+    username: user.username,
+    email: user.email,
+    phone: user.phone,
+    password: '',
+    role: user.role,
+    status: user.status,
+    permissions: [...user.permissions]
+  })
+  dialogVisible.value = true
+}
+
+// 重置表单
+const resetForm = () => {
+  formData.id = undefined
+  formData.username = ''
+  formData.email = ''
+  formData.phone = ''
+  formData.password = ''
+  formData.role = 'user'
+  formData.status = 'active'
+  formData.permissions = []
+  if (formRef.value) {
+    formRef.value.resetFields()
+  }
+}
+
+// 提交表单
+const handleSubmit = async () => {
+  if (!formRef.value) return
+  
+  try {
+    await formRef.value.validate()
+    submitLoading.value = true
+    
+    if (isEdit.value && formData.id) {
+      const updateData: UserUpdateRequest = {
+        id: formData.id,
+        username: formData.username,
+        email: formData.email,
+        phone: formData.phone,
+        role: formData.role,
+        status: formData.status,
+        permissions: formData.permissions
+      }
+      await updateUser(updateData)
+      dialogVisible.value = false
+      ElMessage.success('用户更新成功')
+      await fetchUsers()
+    } else {
+      const createData: UserCreateRequest = {
+        username: formData.username,
+        email: formData.email,
+        phone: formData.phone,
+        password: formData.password,
+        role: formData.role,
+        status: formData.status,
+        permissions: formData.permissions
+      }
+      await createUser(createData)
+      dialogVisible.value = false
+      ElMessage.success('用户创建成功')
+      await fetchUsers()
+    }
+  } catch (error: any) {
+    if (error !== false) {
+      ElMessage.error(isEdit.value ? '更新用户失败' : '创建用户失败')
+      console.error(error)
+    }
+  } finally {
+    submitLoading.value = false
+  }
 }
 
 // 删除用户
@@ -279,10 +467,8 @@ const handleDelete = async (user: User) => {
         confirmButtonText: '确定删除',
         cancelButtonText: '取消',
         type: 'warning',
-        customClass: 'delete-confirm-message-box',
-        confirmButtonClass: 'delete-confirm-btn',
         distinguishCancelAndClose: true,
-        autofocus: false,
+        confirmButtonClass: 'delete-confirm-btn'
       }
     )
     
