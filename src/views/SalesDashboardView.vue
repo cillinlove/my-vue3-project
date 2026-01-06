@@ -54,9 +54,91 @@
         <template #header>
           <div class="card-header">
             <span>商品分类销售分布</span>
+            <div class="chart-actions">
+              <el-tag type="info" size="small" effect="plain">
+                <el-icon><InfoFilled /></el-icon>
+                实时数据
+              </el-tag>
+            </div>
           </div>
         </template>
-        <div id="category-chart" class="chart-container"></div>
+        <div class="category-layout">
+          <div class="chart-section">
+            <div id="category-chart" class="chart-container"></div>
+          </div>
+          <div class="insights-section">
+            <div class="insights-header">
+              <el-icon><TrendCharts /></el-icon>
+              <span>销售洞察</span>
+            </div>
+            <div class="insights-metrics">
+              <div class="metric-card">
+                <div class="metric-icon" style="background: linear-gradient(135deg, #409EFF, #67C23A);">
+                  <el-icon><Medal /></el-icon>
+                </div>
+                <div class="metric-content">
+                  <div class="metric-label">热销分类</div>
+                  <div class="metric-value highlight">{{ statsData.topCategory }}</div>
+                </div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-icon" style="background: linear-gradient(135deg, #E6A23C, #F56C6C);">
+                  <el-icon><Grid /></el-icon>
+                </div>
+                <div class="metric-content">
+                  <div class="metric-label">分类数量</div>
+                  <div class="metric-value">{{ categoryData.length }} 个</div>
+                </div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-icon" style="background: linear-gradient(135deg, #909399, #409EFF);">
+                  <el-icon><PieChart /></el-icon>
+                </div>
+                <div class="metric-content">
+                  <div class="metric-label">最高占比</div>
+                  <div class="metric-value">{{ getMaxPercentage() }}%</div>
+                </div>
+              </div>
+            </div>
+            <div class="breakdown-section">
+              <div class="breakdown-header">
+                <el-icon><List /></el-icon>
+                <span>分类占比明细</span>
+              </div>
+              <div class="breakdown-list">
+                <div 
+                  v-for="(item, index) in categoryData" 
+                  :key="item.category" 
+                  class="breakdown-row"
+                >
+                  <div class="breakdown-info">
+                    <span class="breakdown-dot" :style="{ background: getCategoryColor(index) }"></span>
+                    <span class="breakdown-name">{{ item.category }}</span>
+                  </div>
+                  <div class="breakdown-bars">
+                    <div class="progress-bar">
+                      <div 
+                        class="progress-fill" 
+                        :style="{ 
+                          width: item.percentage + '%',
+                          background: getCategoryColor(index)
+                        }"
+                      ></div>
+                    </div>
+                  </div>
+                  <div class="breakdown-stats">
+                    <span class="breakdown-percent">{{ item.percentage }}%</span>
+                    <span class="breakdown-amount">¥{{ formatAmount(item.amount) }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="insight-tip">
+              <el-icon><WarningFilled /></el-icon>
+              <span>{{ statsData.topCategory }}占总销售额的 {{ getCategoryPercentage(statsData.topCategory) }}%，建议重点关注库存管理</span>
+            </div>
+          </div>
+        </div>
       </el-card>
     </div>
   </PageLayout>
@@ -69,7 +151,34 @@ import PageLayout from '../components/PageLayout.vue'
 import * as echarts from 'echarts'
 import type { EChartsOption, ECharts } from 'echarts'
 import type { SalesTrendData, CategorySalesData, SalesStatsData } from '../types/sales'
+import { InfoFilled, TrendCharts, WarningFilled, Medal, Grid, PieChart, List } from '@element-plus/icons-vue'
 import { getSalesData } from '../utils/api'
+
+// 获取最大占比
+const getMaxPercentage = () => {
+  if (categoryData.value.length === 0) return 0
+  return Math.max(...categoryData.value.map(item => item.percentage))
+}
+
+// 获取指定分类的占比
+const getCategoryPercentage = (category: string) => {
+  const item = categoryData.value.find(item => item.category === category)
+  return item?.percentage.toFixed(1) || 0
+}
+
+// 获取分类颜色
+const getCategoryColor = (index: number) => {
+  const colors = ['#409EFF', '#67C23A', '#E6A23C', '#F56C6C', '#909399']
+  return colors[index % colors.length]
+}
+
+// 格式化金额
+const formatAmount = (amount: number) => {
+  if (amount >= 10000) {
+    return (amount / 10000).toFixed(1) + '万'
+  }
+  return amount.toLocaleString()
+}
 
 // 销售数据
 const statsData = ref<SalesStatsData>({
@@ -195,40 +304,106 @@ const initCategoryChart = () => {
 const updateCategoryChart = () => {
   if (!categoryChart || categoryData.value.length === 0) return
   
+  const colors = ['#409EFF', '#67C23A', '#E6A23C', '#F56C6C', '#909399']
+  
   const option: EChartsOption = {
     tooltip: {
       trigger: 'item',
-      formatter: '{a} <br/>{b}: ¥{c.toLocaleString()} ({d}%)'
+      formatter: (params: any) => {
+        return `
+           <div style="padding: 8px;">
+             <div style="font-weight: 600; margin-bottom: 4px;">${params.name}</div>
+             <div>销售额: <span style="color: #409EFF; font-weight: 600;">¥${params.value.toLocaleString()}</span></div>
+             <div>占比: <span style="color: #67C23A; font-weight: 600;">${params.percent}%</span></div>
+           </div>
+         `
+      },
+      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+      borderColor: '#e4e7ed',
+      borderWidth: 1,
+      textStyle: {
+        color: '#606266'
+      }
     },
     legend: {
       orient: 'vertical',
-      left: 'left',
-      formatter: (name) => {
-        const item = categoryData.value.find(item => item.category === name)
-        return `${name} (¥${item?.amount.toLocaleString() || 0})`
+      right: '3%',
+      top: 'center',
+      itemWidth: 14,
+      itemHeight: 14,
+      itemGap: 20,
+      textStyle: {
+        fontSize: 14,
+        fontWeight: 500,
+        color: '#303133',
+        padding: [4, 0, 4, 10]
+      },
+      formatter: (name: string) => {
+        const item = categoryData.value.find(d => d.category === name)
+        const percent = item?.percentage || 0
+        return `${name}\n${percent}%`
       }
     },
     series: [
       {
         name: '商品分类销售',
         type: 'pie',
-        radius: '50%',
-        data: categoryData.value.map(item => ({
-          value: item.amount,
-          name: item.category
-        })),
-        emphasis: {
-          itemStyle: {
-            shadowBlur: 10,
-            shadowOffsetX: 0,
-            shadowColor: 'rgba(0, 0, 0, 0.5)'
-          }
+        radius: ['48%', '75%'],
+        center: ['45%', '50%'],
+        avoidLabelOverlap: true,
+        itemStyle: {
+          borderRadius: 8,
+          borderColor: '#fff',
+          borderWidth: 3
         },
         label: {
-          formatter: '{b}: {d}%'
+          show: true,
+          position: 'outer',
+          formatter: '{b}',
+          fontSize: 13,
+          fontWeight: 600,
+          color: '#303133',
+          lineHeight: 18
+        },
+        labelLine: {
+          show: true,
+          length: 25,
+          length2: 20,
+          smooth: 0.3,
+          lineStyle: {
+            color: '#909399',
+            width: 1.5,
+            type: 'solid'
+          }
+        },
+        data: categoryData.value.map((item, index) => ({
+          value: item.amount,
+          name: item.category,
+          percentage: item.percentage,
+          itemStyle: {
+            color: colors[index % colors.length]
+          }
+        })),
+        emphasis: {
+          scale: true,
+          scaleSize: 12,
+          itemStyle: {
+            shadowBlur: 30,
+            shadowOffsetX: 0,
+            shadowColor: 'rgba(0, 0, 0, 0.25)'
+          }
         }
       }
-    ]
+    ],
+    labelLayout: {
+      moveOverlap: 'shiftY',
+      hideOverlap: true,
+      y: 10,
+      font: {
+        size: 13,
+        weight: 600
+      }
+    }
   }
   
   categoryChart.setOption(option)
@@ -348,6 +523,234 @@ onUnmounted(() => {
   align-items: center;
 }
 
+.chart-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.category-layout {
+  display: flex;
+  height: calc(100% - 50px);
+  gap: var(--spacing-xl);
+}
+
+.chart-section {
+  flex: 1;
+  min-width: 0;
+}
+
+.chart-section .chart-container {
+  width: 100%;
+  height: 100%;
+}
+
+.insights-section {
+  width: 260px;
+  background: linear-gradient(180deg, #fafbfc 0%, #f5f7fa 100%);
+  border-radius: var(--radius-lg);
+  border: 1px solid #e4e7ed;
+  padding: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.insights-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: #303133;
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 2px solid #409EFF;
+}
+
+.insights-header .el-icon {
+  color: #409EFF;
+  font-size: 18px;
+}
+
+.insights-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.metric-card {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm);
+  background: #fff;
+  border-radius: var(--radius-md);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.metric-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.metric-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.metric-label {
+  font-size: 12px;
+  color: #909399;
+  margin-bottom: 2px;
+}
+
+.metric-value {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: #303133;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.metric-value.highlight {
+  color: #409EFF;
+  font-size: var(--font-size-lg);
+}
+
+.breakdown-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.breakdown-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: #606266;
+  margin-bottom: var(--spacing-sm);
+  padding-bottom: var(--spacing-xs);
+  border-bottom: 1px solid #e4e7ed;
+}
+
+.breakdown-header .el-icon {
+  color: #909399;
+}
+
+.breakdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  flex: 1;
+  overflow-y: auto;
+  padding-right: var(--spacing-xs);
+}
+
+.breakdown-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) 0;
+}
+
+.breakdown-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 70px;
+  flex-shrink: 0;
+}
+
+.breakdown-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.breakdown-name {
+  font-size: 12px;
+  color: #303133;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.breakdown-bars {
+  flex: 1;
+  min-width: 0;
+}
+
+.progress-bar {
+  height: 8px;
+  background: #f0f2f5;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.breakdown-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  width: 70px;
+  flex-shrink: 0;
+}
+
+.breakdown-percent {
+  font-size: 13px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.breakdown-amount {
+  font-size: 11px;
+  color: #909399;
+}
+
+.insight-tip {
+  margin-top: auto;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: linear-gradient(90deg, rgba(64, 158, 255, 0.08) 0%, rgba(230, 162, 60, 0.08) 100%);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  color: #606266;
+  line-height: 1.6;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  border-left: 3px solid #E6A23C;
+}
+
+.insight-tip .el-icon {
+  color: #E6A23C;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
 @media (max-width: 768px) {
   .sales-dashboard {
     padding: var(--spacing-lg);
@@ -368,7 +771,50 @@ onUnmounted(() => {
   }
   
   .chart-card {
-    height: 400px;
+    height: auto;
+    min-height: 500px;
+  }
+  
+  .category-layout {
+    flex-direction: column;
+    gap: var(--spacing-lg);
+  }
+  
+  .chart-section {
+    height: 280px;
+  }
+  
+  .insights-section {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  
+  .insights-header {
+    width: 100%;
+    padding-bottom: var(--spacing-xs);
+    border-bottom: 1px solid #e4e7ed;
+  }
+  
+  .insights-metrics {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+  }
+  
+  .metric-card {
+    flex: 1;
+    min-width: calc(33.33% - 8px);
+  }
+  
+  .breakdown-section {
+    width: 100%;
+    max-height: 200px;
+  }
+  
+  .insight-tip {
+    width: 100%;
+    margin-top: var(--spacing-sm);
   }
 }
 </style>
