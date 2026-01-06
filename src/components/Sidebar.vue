@@ -107,7 +107,6 @@ const menuGroups = [
     title: '系统管理',
     items: [
       { path: '/', name: 'Home', title: '首页', icon: DataAnalysis, color: '#409EFF' },
-      { path: '/about', name: 'About', title: '关于我们', icon: InfoFilled, color: '#67C23A' },
       { path: '/permission-management', name: 'PermissionManagement', title: '权限管理', icon: Key, color: '#F56C6C' }
     ]
   },

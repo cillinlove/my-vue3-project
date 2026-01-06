@@ -94,25 +94,27 @@
           </el-table-column>
           <el-table-column prop="createdAt" label="创建时间" width="180" />
           <el-table-column prop="updatedAt" label="更新时间" width="180" />
-          <el-table-column label="操作" width="150" fixed="right">
+          <el-table-column label="操作" width="180" fixed="right">
             <template #default="scope">
-              <el-button
-                type="primary"
-                size="small"
-                @click="handleEditPermission(scope.row)"
-                :disabled="!scope.row.status"
-              >
-                <el-icon><Edit /></el-icon>
-                编辑
-              </el-button>
-              <el-button
-                type="danger"
-                size="small"
-                @click="handleDeletePermission(scope.row)"
-              >
-                <el-icon><Delete /></el-icon>
-                删除
-              </el-button>
+              <div class="operation-buttons">
+                <el-button
+                  type="primary"
+                  size="small"
+                  @click="handleEditPermission(scope.row)"
+                  :disabled="!scope.row.status"
+                >
+                  <el-icon><Edit /></el-icon>
+                  编辑
+                </el-button>
+                <el-button
+                  type="danger"
+                  size="small"
+                  @click="handleDeletePermission(scope.row)"
+                >
+                  <el-icon><Delete /></el-icon>
+                  删除
+                </el-button>
+              </div>
             </template>
           </el-table-column>
         </el-table>
@@ -495,7 +497,12 @@ onMounted(() => {
   justify-content: flex-end;
 }
 
-
+.operation-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-start;
+  align-items: center;
+}
 
 :deep(.el-card) {
   border-radius: 8px;
